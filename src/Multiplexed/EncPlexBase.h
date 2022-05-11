@@ -8,7 +8,7 @@ namespace EncoderTool
     class EncPlexBase
     {
      public:
-        void attachCallback(allCallback_t callback);
+        void attachCallback(encAllCallback_t callback);
         EncoderBase& operator[](size_t idx);
 
      protected:
@@ -16,11 +16,11 @@ namespace EncoderTool
         ~EncPlexBase();
 
         void begin(CountMode mode = CountMode::quarter);
-        void begin(allCallback_t, CountMode mode = CountMode::quarter);
+        void begin(encAllCallback_t, CountMode mode = CountMode::quarter);
 
         const uint32_t encoderCount;
         EncoderBase* encoders;
 
-        allCallback_t callback = nullptr;
+        encAllCallback_t callback = nullptr;
     };
 }

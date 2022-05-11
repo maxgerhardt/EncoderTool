@@ -18,7 +18,7 @@ namespace EncoderTool
         inline ~Encoder();
 
         inline bool begin(int pinA, int pinB, CountMode = CountMode::quarter, int inputMode = INPUT_PULLUP);
-        inline bool begin(int pinA, int pinB, encCallback_t cb, CountMode = CountMode::quarter, int inputMode = INPUT_PULLUP);
+        inline bool begin(int pinA, int pinB, encPlainCB_t* cb, CountMode = CountMode::quarter, int inputMode = INPUT_PULLUP);
 
         void doUpdate() { update(HAL::directRead(A), HAL::directRead(B)); }
 
@@ -35,7 +35,7 @@ namespace EncoderTool
         // Pin::setCallbackMember(&Encoder::doUpdate);
     }
 
-    bool Encoder::begin(int pinA, int pinB, encCallback_t cb, CountMode countMode, int inputMode)
+    bool Encoder::begin(int pinA, int pinB, encPlainCB_t* cb, CountMode countMode, int inputMode)
     {
         bool ret = begin(pinA, pinB, countMode, inputMode);
         attachCallback(cb);

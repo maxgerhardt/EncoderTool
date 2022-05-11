@@ -8,34 +8,45 @@ namespace EncoderTool
         {
             case CountMode::quarter:
                 stateMachine = &stateMachineQtr;
-                invert = 0b11;
+                invert       = 0b11;
                 break;
             case CountMode::quarterInv:
                 stateMachine = &stateMachineQtr;
-                invert = 0b00;
+                invert       = 0b00;
                 break;
             case CountMode::half:
                 stateMachine = &stateMachineHalf;
-                invert = 0b00;
+                invert       = 0b00;
                 break;
             case CountMode::halfAlt:
                 stateMachine = &stateMachineHalf;
-                invert = 0b01;
+                invert       = 0b01;
                 break;
             default:
                 stateMachine = &stateMachineFull;
-                invert = 0b00;
+                invert       = 0b00;
         }
         return *this;
     }
 
-    EncoderBase& EncoderBase::attachCallback(encCallback_t cb)
+    EncoderBase& EncoderBase::attachCallback(encPlainCB_t& cb)
     {
-        callback = cb;
+        callback = (void*)&cb;
+        state    = nullptr;
         return *this;
     }
 
-    EncoderBase& EncoderBase::attachButtonCallback(encBtnCallback_t cb)
+#if defined(PLAIN_ENC_CALLBACK)
+    EncoderBase& EncoderBase::attachCallback(encStatefulCB_t* cb, void* _state)
+    {
+        callback = (void*)cb;
+        state    = _state;
+
+        return *this;
+    }
+#endif
+
+    EncoderBase& EncoderBase::attachButtonCallback(btnPlainCallback_t cb)
     {
         btnCallback = cb;
         return *this;
@@ -45,31 +56,31 @@ namespace EncoderTool
     {
         if (min < max)
         {
-            this->minVal = min;
-            this->maxVal = max;
+            this->minVal   = min;
+            this->maxVal   = max;
             this->periodic = periodic;
-        } else
+        }
+        else
         {
             this->minVal = INT_MIN;
             this->maxVal = INT_MAX;
         }
 
-            return *this;
-
+        return *this;
     }
 
     enum states : uint8_t {
-        A = 0x00,
-        B_cw = 0x01,
-        C_cw = 0x03,
-        D_cw = 0x02,
+        A     = 0x00,
+        B_cw  = 0x01,
+        C_cw  = 0x03,
+        D_cw  = 0x02,
         B_ccw = 0x04,
         C_ccw = 0x06,
         D_ccw = 0x05,
 
-        UP = 0x10,
+        UP   = 0x10,
         DOWN = 0x20,
-        ERR = 0x30,
+        ERR  = 0x30,
     };
 
     void EncoderBase::begin(uint_fast8_t phaseA, uint_fast8_t phaseB)
@@ -77,9 +88,19 @@ namespace EncoderTool
         curState = (phaseA << 1 | phaseB) ^ invert;
     }
 
+    void invokeCallback(void* cb, void* state, int value, int delta)
+    {
+        if (cb == nullptr) return;
+#if defined(PLAIN_ENC_CALLBACK)
+        state == nullptr ? ((encPlainCB_t*)cb)(value, delta) : ((encStatefulCB_t*)cb)(value, delta, state);
+#else
+        (*((encPlainCB_t*)cb))(value, delta);
+        auto x = (encPlainCB_t*)cb;
+#endif
+    }
+
     int EncoderBase::update(uint_fast8_t phaseA, uint_fast8_t phaseB, uint_fast8_t btn)
     {
-
 
         if (button.update(btn))
         {
@@ -90,9 +111,9 @@ namespace EncoderTool
         unsigned input = (phaseA << 1 | phaseB) ^ invert; // invert signals if necessary
         if (stateMachine == nullptr) return 0;            // tick might get called from yield before class is initialized
 
-        curState = (*stateMachine)[curState][input]; // get next state depending on new input
-        uint8_t direction = curState & 0xF0;         // direction is set if we need to count up / down or got an error
-        curState &= 0x0F;                            // remove the direction info from state
+        curState          = (*stateMachine)[curState][input]; // get next state depending on new input
+        uint8_t direction = curState & 0xF0;                  // direction is set if we need to count up / down or got an error
+        curState &= 0x0F;                                     // remove the direction info from state
 
         if (direction == UP)
         {
@@ -100,17 +121,14 @@ namespace EncoderTool
             {
                 value++;
                 valChanged = true;
-                if (callback != nullptr)
-                    callback(value, +1);
+                invokeCallback(callback, state, value, +1);
                 return +1;
             }
             if (periodic) // if periodic, wrap to minVal, else stop counting
             {
-                value = minVal;
+                value      = minVal;
                 valChanged = true;
-
-                if (callback != nullptr)
-                    callback(value, +1);
+                invokeCallback(callback, state, value, +1);
                 return +1;
             }
             value = maxVal;
@@ -123,16 +141,14 @@ namespace EncoderTool
             {
                 value--;
                 valChanged = true;
-                if (callback != nullptr)
-                    callback(value, -1);
+                invokeCallback(callback, state, value, -1);
                 return -1;
             }
             if (periodic) // if periodic, wrap to maxVal, else stop counting
             {
                 valChanged = true;
-                value = maxVal;
-                if (callback != nullptr)
-                    callback(value, -1);
+                value      = maxVal;
+                invokeCallback(callback, state, value, -1);
                 return -1;
             }
             value = minVal;
@@ -170,7 +186,7 @@ namespace EncoderTool
 
         /*4 B_ccw*/ {A | DOWN, B_ccw, B_ccw | ERR, C_cw},
         /*5 D_ccw*/ {A, B_ccw | ERR, D_ccw, C_cw | DOWN},
-        /*6 C_ccw*/ {C_ccw | ERR, C_ccw | ERR, C_ccw | ERR, C_ccw | ERR}, //should never be in this state...
+        /*6 C_ccw*/ {C_ccw | ERR, C_ccw | ERR, C_ccw | ERR, C_ccw | ERR}, // should never be in this state...
     };
 
     const uint8_t EncoderBase::stateMachineFull[7][4]{

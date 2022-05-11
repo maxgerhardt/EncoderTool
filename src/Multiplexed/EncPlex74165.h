@@ -15,7 +15,7 @@ namespace EncoderTool
         inline ~EncPlex74165();
 
         inline void begin(CountMode mode = CountMode::quarter);
-        inline void begin(allCallback_t callback, CountMode m = CountMode::quarter);
+        inline void begin(encAllCallback_t callback, CountMode m = CountMode::quarter);
         inline void tick(); // call as often as possible
 
      protected:
@@ -35,7 +35,7 @@ namespace EncoderTool
         pinMode(CLK.pin, INPUT);
     }
 
-    void EncPlex74165::begin(allCallback_t cb, CountMode mode)
+    void EncPlex74165::begin(encAllCallback_t cb, CountMode mode)
     {
         begin(mode);
         attachCallback(cb);
@@ -89,7 +89,6 @@ namespace EncoderTool
         delay50ns();
         delay50ns();
         directWrite(LD, HIGH);
-
 
         // first values are available directly after loading
         int a   = directRead(A);

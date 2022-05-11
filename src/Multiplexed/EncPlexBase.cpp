@@ -26,7 +26,7 @@ namespace EncoderTool
         return idx < encoderCount ? encoders[idx] : encoders[encoderCount - 1];
     }
 
-    void EncPlexBase::attachCallback(allCallback_t _callback)
+    void EncPlexBase::attachCallback(encAllCallback_t _callback)
     {
         callback = _callback;
     }

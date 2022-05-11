@@ -1,7 +1,7 @@
 #pragma once
 #include "EncoderButton.h"
-#include "HAL/directReadWrite.h"
 #include "HAL/SimplyAtomic/SimplyAtomic.h"
+#include "HAL/directReadWrite.h"
 #include "config.h"
 #include <limits.h>
 
@@ -20,10 +20,12 @@ namespace EncoderTool
      public:
         void begin(uint_fast8_t phaseA, uint_fast8_t phaseB);
 
-        EncoderBase &setCountMode(CountMode);
-        EncoderBase &attachCallback(encCallback_t);
-        EncoderBase &attachButtonCallback(encBtnCallback_t);
-        EncoderBase &setLimits(int min, int max, bool periodic = false);
+        EncoderBase& setCountMode(CountMode);
+        EncoderBase& attachCallback(encPlainCB_t&);          // void(*callback)(int value, int delta)
+       // EncoderBase& attachCallback(encStatefulCB_t*, void* state); // void(*callback)(int value, int delta, void* state)
+
+        EncoderBase& attachButtonCallback(btnPlainCallback_t);
+        EncoderBase& setLimits(int min, int max, bool periodic = false);
 
         void setValue(int val) { value = val; }
 
@@ -71,25 +73,26 @@ namespace EncoderTool
         unsigned invert  = 0x00;
         uint8_t curState = 0;
 
-        encCallback_t callback       = nullptr;
-        encBtnCallback_t btnCallback = nullptr;
+        void* callback               = nullptr;
+        void* state                  = nullptr;
+        btnPlainCallback_t btnCallback = nullptr;
 
         static const uint8_t stateMachineQtr[7][4];
         static const uint8_t stateMachineHalf[7][4];
         static const uint8_t stateMachineFull[7][4];
         const uint8_t (*stateMachine)[7][4] = &stateMachineFull;
 
-        EncoderBase &operator=(EncoderBase const &) = delete;
-        EncoderBase(EncoderBase const &)            = delete;
+        EncoderBase& operator=(EncoderBase const&) = delete;
+        EncoderBase(EncoderBase const&)            = delete;
 
         friend class EncPlexBase;
 
 #if defined(USE_ERROR_CALLBACKS)
      protected:
-        encCallback_t errCallback = nullptr;
+        encPlainCB_t errCallback = nullptr;
 
      public:
-        void attachErrorCallback(encCallback_t cb) { errCallback = cb; }
+        void attachErrorCallback(encPlainCB_t cb) { errCallback = cb; }
 #endif
     };
 }
