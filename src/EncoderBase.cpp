@@ -29,22 +29,20 @@ namespace EncoderTool
         return *this;
     }
 
-    EncoderBase& EncoderBase::attachCallback(encPlainCB_t& cb)
+    EncoderBase& EncoderBase::attachCallback(encPlainCB_t cb)
     {
-        callback = (void*)&cb;
+        callback = cb;
         state    = nullptr;
         return *this;
     }
 
-#if defined(PLAIN_ENC_CALLBACK)
-    EncoderBase& EncoderBase::attachCallback(encStatefulCB_t* cb, void* _state)
+    EncoderBase& EncoderBase::attachCallback(encStatefulCB_t cb, void* _state)
     {
-        callback = (void*)cb;
-        state    = _state;
+        statefullCB = cb;
+        state       = _state;
 
         return *this;
     }
-#endif
 
     EncoderBase& EncoderBase::attachButtonCallback(btnPlainCallback_t cb)
     {
@@ -88,16 +86,17 @@ namespace EncoderTool
         curState = (phaseA << 1 | phaseB) ^ invert;
     }
 
-    void invokeCallback(void* cb, void* state, int value, int delta)
-    {
-        if (cb == nullptr) return;
-#if defined(PLAIN_ENC_CALLBACK)
-        state == nullptr ? ((encPlainCB_t*)cb)(value, delta) : ((encStatefulCB_t*)cb)(value, delta, state);
-#else
-        (*((encPlainCB_t*)cb))(value, delta);
-        auto x = (encPlainCB_t*)cb;
-#endif
-    }
+    // template <typename cb_t>
+    // void invokeCallback(cb_t& cb, void* state, int value, int delta)
+    // {
+    //     if (cb == nullptr) return;
+
+    //     callback != nullptr ? callback(value, delta) : statefullCB(value, delta, state);
+    //     // #else
+    //     //         (*((encPlainCB_t*)cb))(value, delta);
+    //     //         auto x = (encPlainCB_t*)cb;
+    //     // #endif
+    // }
 
     int EncoderBase::update(uint_fast8_t phaseA, uint_fast8_t phaseB, uint_fast8_t btn)
     {
@@ -121,6 +120,7 @@ namespace EncoderTool
             {
                 value++;
                 valChanged = true;
+                if(callback != nullptr)  callback(value, +1) else if(statefulCB != nullptr) ? : statefullCB(value, +1, state);
                 invokeCallback(callback, state, value, +1);
                 return +1;
             }

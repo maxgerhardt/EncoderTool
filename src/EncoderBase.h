@@ -21,8 +21,8 @@ namespace EncoderTool
         void begin(uint_fast8_t phaseA, uint_fast8_t phaseB);
 
         EncoderBase& setCountMode(CountMode);
-        EncoderBase& attachCallback(encPlainCB_t&);          // void(*callback)(int value, int delta)
-       // EncoderBase& attachCallback(encStatefulCB_t*, void* state); // void(*callback)(int value, int delta, void* state)
+        EncoderBase& attachCallback(encPlainCB_t);                 // void(*)(int value, int delta)
+        EncoderBase& attachCallback(encStatefulCB_t, void* state); // void(*)(int value, int delta, void* state)
 
         EncoderBase& attachButtonCallback(btnPlainCallback_t);
         EncoderBase& setLimits(int min, int max, bool periodic = false);
@@ -73,8 +73,9 @@ namespace EncoderTool
         unsigned invert  = 0x00;
         uint8_t curState = 0;
 
-        void* callback               = nullptr;
-        void* state                  = nullptr;
+        encPlainCB_t callback          = nullptr;
+        encStatefulCB_t statefullCB    = nullptr;
+        void* state                    = nullptr;
         btnPlainCallback_t btnCallback = nullptr;
 
         static const uint8_t stateMachineQtr[7][4];
